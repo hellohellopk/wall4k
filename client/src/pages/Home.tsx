@@ -212,8 +212,22 @@ export default function Home() {
   const [layers, setLayers] = useState(palettes.stacked_cards.layers);
   const [exporting, setExporting] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [gradientEnabled, setGradientEnabled] = useState(true);
+  const [gradientColors, setGradientColors] = useState<[string, string, string]>(["#183B5B", "#D6A23F", "#E57148"]);
+  const [gradientStops, setGradientStops] = useState<[number, number, number]>([0, 52, 100]);
+  const [gradientAngle, setGradientAngle] = useState(34);
+  const [gradientStrength, setGradientStrength] = useState(46);
+  const [patternRotation, setPatternRotation] = useState(0);
   const config = patternConfig[mode];
   const backgroundVisible = mode !== "stripes" && mode !== "diagonal_waves" && mode !== "soft_tiles" && mode !== "sunburst";
+  const gradientRadians = (gradientAngle * Math.PI) / 180;
+  const gradientRadius = 2600;
+  const gradientVector = {
+    x1: 1080 - Math.cos(gradientRadians) * gradientRadius,
+    y1: 2340 - Math.sin(gradientRadians) * gradientRadius,
+    x2: 1080 + Math.cos(gradientRadians) * gradientRadius,
+    y2: 2340 + Math.sin(gradientRadians) * gradientRadius,
+  };
 
   const modeNumber = (Object.keys(patternConfig) as Mode[]).indexOf(mode) + 1;
   const modeTotal = Object.keys(patternConfig).length;
@@ -344,17 +358,33 @@ export default function Home() {
     setLayers((previous) => previous.map((color, colorIndex) => colorIndex === index ? value : color));
   };
 
+  const updateGradientColor = (index: number, value: string) => {
+    setGradientColors((previous) => previous.map((color, colorIndex) => colorIndex === index ? value : color) as [string, string, string]);
+  };
+
+  const updateGradientStop = (index: number, value: number) => {
+    setGradientStops((previous) => previous.map((stop, stopIndex) => stopIndex === index ? value : stop) as [number, number, number]);
+  };
+
   const applyColorTheme = (theme: ColorTheme) => {
     setBackground(theme.background);
     setLayers([...theme.layers]);
+    setGradientColors([theme.layers[0], theme.layers[2], theme.layers[4]]);
   };
 
   const randomize = () => {
     if (backgroundVisible) setBackground(randomHex());
     setLayers((previous) => previous.map(() => randomHex()));
+    setGradientColors([randomHex(), randomHex(), randomHex()]);
   };
 
-  const reset = () => selectMode(mode);
+  const reset = () => {
+    selectMode(mode);
+    setGradientStops([0, 52, 100]);
+    setGradientAngle(34);
+    setGradientStrength(46);
+    setPatternRotation(0);
+  };
 
   const applyPreset = (nextMode: Mode) => {
     selectMode(nextMode);
@@ -455,6 +485,22 @@ export default function Home() {
                 ))}
               </div>
             </div>
+            <div className={`advanced-color-editor ${gradientEnabled ? "is-enabled" : ""}`}>
+              <div className="advanced-color-header"><span>進階漸層</span><label className="gradient-switch"><input type="checkbox" checked={gradientEnabled} onChange={(event) => setGradientEnabled(event.target.checked)} /><i aria-hidden="true" /><b>{gradientEnabled ? "ON" : "OFF"}</b></label></div>
+              <div className="gradient-stops">
+                {gradientColors.map((color, index) => (
+                  <label className="gradient-stop" key={index}>
+                    <input type="color" value={color} onChange={(event) => updateGradientColor(index, event.target.value)} aria-label={`變更第 ${index + 1} 個漸層顏色`} />
+                    <span style={{ background: color }} />
+                    <input type="range" min="0" max="100" value={gradientStops[index]} onChange={(event) => updateGradientStop(index, Number(event.target.value))} aria-label={`調整第 ${index + 1} 個漸層顏色位置`} />
+                    <b>{gradientStops[index]}%</b>
+                  </label>
+                ))}
+              </div>
+              <label className="advanced-range"><span>漸層方向 <output>{gradientAngle}°</output></span><input type="range" min="0" max="360" value={gradientAngle} onChange={(event) => setGradientAngle(Number(event.target.value))} /></label>
+              <label className="advanced-range"><span>漸層強度 <output>{gradientStrength}%</output></span><input type="range" min="0" max="100" value={gradientStrength} onChange={(event) => setGradientStrength(Number(event.target.value))} /></label>
+              <label className="advanced-range"><span>構圖旋轉 <output>{patternRotation}°</output></span><input type="range" min="-180" max="180" value={patternRotation} onChange={(event) => setPatternRotation(Number(event.target.value))} /></label>
+            </div>
             {backgroundVisible && (
               <label className="base-color-control">
                 <span>底色</span>
@@ -492,9 +538,13 @@ export default function Home() {
               <svg ref={svgRef} className="wallpaper-canvas" viewBox="0 0 2160 4680" role="img" aria-label={`${config.title}桌布預覽`} xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <filter id="card-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="25" stdDeviation="20" floodColor="#000000" floodOpacity="0.15" /></filter>
+                  <linearGradient id="wall-gradient" gradientUnits="userSpaceOnUse" x1={gradientVector.x1} y1={gradientVector.y1} x2={gradientVector.x2} y2={gradientVector.y2}>
+                    {gradientColors.map((color, index) => <stop key={`${color}-${index}`} offset={`${gradientStops[index]}%`} stopColor={color} />)}
+                  </linearGradient>
                 </defs>
                 <rect width="2160" height="4680" fill={background} />
-                <g clipPath="inset(0)">{svgArtwork}</g>
+                <g clipPath="inset(0)" transform={patternRotation ? `rotate(${patternRotation} 1080 2340)` : undefined}>{svgArtwork}</g>
+                {gradientEnabled && gradientStrength > 0 && <rect width="2160" height="4680" fill="url(#wall-gradient)" opacity={gradientStrength / 100} style={{ mixBlendMode: "soft-light" }} />}
               </svg>
               <div className="phone-edge-glow" />
             </div>
