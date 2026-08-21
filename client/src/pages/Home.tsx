@@ -24,7 +24,12 @@ type Mode =
   | "soft_tiles"
   | "diamond_field"
   | "sunburst"
-  | "orbit_grid";
+  | "orbit_grid"
+  | "cross_spectrum"
+  | "transparent_orbit"
+  | "outlined_pebbles"
+  | "soft_columns"
+  | "floating_pillars";
 
 type PatternConfig = {
   title: string;
@@ -148,6 +153,56 @@ const patternConfig: Record<Mode, PatternConfig> = {
     max: [900, 200, 360],
     defaults: [560, 75, 0],
   },
+  cross_spectrum: {
+    title: "交叉光譜",
+    shortTitle: "CROSS SPECTRUM",
+    subtitle: "兩組反向光譜色帶在黑色留白上交會。",
+    labels: ["色帶厚度", "中軸高度", "交叉角度"],
+    units: ["px", "px", "°"],
+    min: [140, 1200, 18],
+    max: [520, 3400, 65],
+    defaults: [270, 2360, 36],
+  },
+  transparent_orbit: {
+    title: "透明軌道",
+    shortTitle: "TRANSPARENT ORBIT",
+    subtitle: "半透明圓盤與厚實曲帶在青藍色空間中交疊。",
+    labels: ["圓盤尺度", "曲帶厚度", "軌道偏移"],
+    units: ["px", "px", "px"],
+    min: [260, 240, -600],
+    max: [980, 1100, 600],
+    defaults: [560, 680, 0],
+  },
+  outlined_pebbles: {
+    title: "描邊卵石",
+    shortTitle: "OUTLINED PEBBLES",
+    subtitle: "以墨色輪廓壓住被邊界裁切的有機色塊。",
+    labels: ["輪廓粗度", "卵石尺度", "葉形偏移"],
+    units: ["px", "px", "px"],
+    min: [8, 280, -500],
+    max: [64, 1100, 500],
+    defaults: [20, 620, 0],
+  },
+  soft_columns: {
+    title: "柔邊柱面",
+    shortTitle: "SOFT COLUMNS",
+    subtitle: "多組垂直柔邊色帶與巨型弧面彼此穿梭。",
+    labels: ["曲線幅度", "柱面寬度", "弧面切入"],
+    units: ["px", "px", "px"],
+    min: [80, 280, -800],
+    max: [620, 880, 800],
+    defaults: [290, 470, 120],
+  },
+  floating_pillars: {
+    title: "漂浮柱面",
+    shortTitle: "FLOATING PILLARS",
+    subtitle: "巨大有機柱面引導一群彩色圓盤浮動穿越畫面。",
+    labels: ["柱面幅度", "圓盤尺度", "群組偏移"],
+    units: ["px", "px", "px"],
+    min: [140, 180, -600],
+    max: [780, 760, 600],
+    defaults: [390, 420, 0],
+  },
 };
 
 const palettes: Record<Mode, { bg: string; layers: string[] }> = {
@@ -165,6 +220,11 @@ const palettes: Record<Mode, { bg: string; layers: string[] }> = {
   diamond_field: { bg: "#10151C", layers: ["#D8683B", "#E2B868", "#F0E7D3", "#377987", "#B94555", "#1F3B56"] },
   sunburst: { bg: "#F2E8D5", layers: ["#F2E8D5", "#EAB451", "#E57148", "#BC4451", "#5D405D", "#2D5C6E"] },
   orbit_grid: { bg: "#EAE2D3", layers: ["#163A54", "#22748B", "#D7A347", "#CC5C48", "#6F7E49", "#D9D2C3"] },
+  cross_spectrum: { bg: "#060606", layers: ["#205FE6", "#56A9F0", "#E9EFF2", "#FFCD8C", "#FF873E", "#F23D28", "#B90F0F"] },
+  transparent_orbit: { bg: "#287E9E", layers: ["#287E9E", "#688FA0", "#F1D8CA", "#BE603F", "#FF9E2E", "#173F61"] },
+  outlined_pebbles: { bg: "#F27666", layers: ["#F27666", "#126D7B", "#F9AD2F", "#FED598", "#52B7BA", "#A6D9DA"] },
+  soft_columns: { bg: "#5A94A2", layers: ["#FFB24A", "#F7D1A8", "#F49A8A", "#5A94A2", "#294D7D", "#EF3B7B", "#74456E"] },
+  floating_pillars: { bg: "#F1EEEA", layers: ["#F1EEEA", "#31B9C4", "#2B59B9", "#FF4543", "#FFBD72", "#1596C2"] },
 };
 
 type ColorTheme = { id: string; title: string; background: string; layers: string[] };
@@ -213,7 +273,7 @@ export default function Home() {
   const [exporting, setExporting] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const config = patternConfig[mode];
-  const backgroundVisible = mode !== "stripes" && mode !== "diagonal_waves" && mode !== "soft_tiles" && mode !== "sunburst";
+  const backgroundVisible = !["stripes", "diagonal_waves", "soft_tiles", "sunburst", "cross_spectrum", "transparent_orbit", "soft_columns", "floating_pillars"].includes(mode);
 
   const modeNumber = (Object.keys(patternConfig) as Mode[]).indexOf(mode) + 1;
   const modeTotal = Object.keys(patternConfig).length;
@@ -320,6 +380,74 @@ export default function Home() {
         const cy = -a + row * a;
         return <circle key={`${row}-${column}`} cx={cx} cy={cy} r={a * 0.39} fill="none" stroke={layers[(row * 2 + column) % layers.length]} strokeWidth={b} />;
       }));
+    }
+    if (mode === "cross_spectrum") {
+      const upperStart = b - layers.length * a * 0.58;
+      const lowerStart = b + a * 1.6;
+      return (
+        <>
+          <rect width="2160" height="4680" fill={background} />
+          <g transform={`rotate(${-c} 1080 ${b})`}>
+            {layers.map((color, index) => <rect key={`upper-${index}`} x="-1800" y={upperStart + index * a} width="5760" height={a} fill={color} />)}
+          </g>
+          <g transform={`rotate(${c} 1080 ${b})`}>
+            {layers.slice().reverse().map((color, index) => <rect key={`lower-${index}`} x="-1800" y={lowerStart + index * a} width="5760" height={a} fill={color} />)}
+          </g>
+        </>
+      );
+    }
+    if (mode === "transparent_orbit") {
+      const centerX = 1080 + c;
+      return (
+        <>
+          <rect width="2160" height="4680" fill={background} />
+          <path d={`M -300,3800 C 520,${3700 - b * 0.45} 420,${1900 + b * 0.25} 1380,980 C 1840,540 2300,760 2500,1080 L 2500,2500 C 1880,2090 1780,2860 1280,3600 C 780,4320 220,4540 -300,4520 Z`} fill={layers[1]} opacity="0.76" />
+          <path d={`M -300,3920 C 420,${3820 - b * 0.35} 620,${2370 + b * 0.15} 1520,1320 C 1960,800 2340,930 2500,1220 L 2500,2150 C 2030,1820 1760,2680 1220,3480 C 670,4300 200,4430 -300,4540 Z`} fill={layers[4]} opacity="0.94" />
+          <circle cx={560 + c * 0.22} cy="1260" r={a * 0.48} fill={layers[2]} opacity="0.88" />
+          <circle cx={1110 + c * 0.12} cy="760" r={a * 0.45} fill={layers[3]} opacity="0.78" />
+          <circle cx={1870 + c * 0.2} cy="3810" r={a * 0.7} fill={layers[5]} opacity="0.78" />
+        </>
+      );
+    }
+    if (mode === "outlined_pebbles") {
+      const outline = "#111614";
+      return (
+        <>
+          <rect width="2160" height="4680" fill={background} />
+          <path d={`M 1250,-240 C 810,420 1490,1040 880,1520 C 360,1950 690,2690 70,3300 C -260,3620 -120,4380 560,4920 L 1420,4920 C 1110,4240 1370,3760 1700,3320 C 2070,2820 2040,2120 1600,1690 C 1250,1350 1840,610 1250,-240 Z`} fill={layers[1]} stroke={outline} strokeWidth={a} />
+          <path d={`M 420,1500 C 650,1100 1180,1060 1390,1440 C 1590,1800 1370,2250 880,2340 C 390,2430 170,1980 420,1500 Z`} fill={layers[2]} stroke={outline} strokeWidth={a} />
+          <path d={`M 960,920 C 1220,570 1760,660 1850,1070 C 1950,1520 1600,1860 1180,1730 C 780,1600 690,1280 960,920 Z`} fill={layers[3]} stroke={outline} strokeWidth={a} />
+          <path d={`M -170,2820 C 340,2370 930,2690 980,3240 C 1020,3720 420,3980 -40,3690 Z`} fill={layers[4]} stroke={outline} strokeWidth={a} />
+        </>
+      );
+    }
+    if (mode === "soft_columns") {
+      return (
+        <>
+          <rect width="2160" height="4680" fill={background} />
+          {layers.slice(0, 4).map((color, index) => {
+            const baseX = -240 + index * b;
+            return <path key={color} d={`M ${baseX},-220 C ${baseX + a},880 ${baseX - a},1840 ${baseX + a * 0.35},2660 C ${baseX - a * 0.6},3470 ${baseX + a * 0.8},4020 ${baseX + a * 0.15},4900 L ${baseX + b * 1.2},4900 C ${baseX + b * 0.86 + a},3950 ${baseX + b * 0.8 - a},3140 ${baseX + b * 0.95},2340 C ${baseX + b * 0.85 - a},1470 ${baseX + b * 0.9 + a},650 ${baseX + b * 0.78},-220 Z`} fill={color} />;
+          })}
+          <circle cx={2040 + c} cy="2450" r="1220" fill={layers[4]} />
+          <circle cx={2220 + c} cy="3310" r="980" fill={layers[5]} />
+          <circle cx={2300 + c} cy="4250" r="760" fill={layers[6]} />
+        </>
+      );
+    }
+    if (mode === "floating_pillars") {
+      const pillarX = 960 + c;
+      return (
+        <>
+          <rect width="2160" height="4680" fill={background} />
+          <path d={`M ${pillarX - a},-220 C ${pillarX - a * 1.4},940 ${pillarX + a * 1.45},1280 ${pillarX + a * 0.8},2300 C ${pillarX + a * 0.35},3060 ${pillarX - a * 1.3},3810 ${pillarX - a * 0.55},4900 L ${pillarX + a * 1.05},4900 C ${pillarX + a * 1.7},3720 ${pillarX + a * 0.05},3000 ${pillarX + a * 1.35},2110 C ${pillarX + a * 2.1},1260 ${pillarX + a * 0.4},610 ${pillarX + a},-220 Z`} fill={layers[2]} />
+          <circle cx={360 + c * 0.25} cy="1120" r={b * 0.62} fill={layers[4]} />
+          <circle cx={730 + c * 0.18} cy="1690" r={b * 0.86} fill={layers[3]} />
+          <circle cx={1730 + c * 0.2} cy="620" r={b * 0.92} fill={layers[5]} />
+          <circle cx={1830 + c * 0.25} cy="3460" r={b * 1.15} fill={layers[4]} />
+          <path d={`M -160,3900 C 300,3370 680,3780 500,4360 C 380,4750 80,4890 -160,4860 Z`} fill={layers[1]} />
+        </>
+      );
     }
     return (
       <>
