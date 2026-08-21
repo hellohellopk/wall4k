@@ -21,7 +21,10 @@ type Mode =
   | "stripes"
   | "waves"
   | "arches"
-  | "soft_tiles";
+  | "soft_tiles"
+  | "diamond_field"
+  | "sunburst"
+  | "orbit_grid";
 
 type PatternConfig = {
   title: string;
@@ -115,6 +118,36 @@ const patternConfig: Record<Mode, PatternConfig> = {
     max: [800, 850, 2000],
     defaults: [460, 500, 1100],
   },
+  diamond_field: {
+    title: "菱形田野",
+    shortTitle: "DIAMOND FIELD",
+    subtitle: "以交錯菱格建立有節奏的印刷式色面。",
+    labels: ["菱形寬度", "菱形高度", "網格位移"],
+    units: ["px", "px", "px"],
+    min: [180, 160, -360],
+    max: [720, 620, 360],
+    defaults: [420, 330, 0],
+  },
+  sunburst: {
+    title: "放射扇面",
+    shortTitle: "SUNBURST",
+    subtitle: "從可移動中心向外裁出強烈、乾淨的色彩光束。",
+    labels: ["光束數量", "中心 X 軸", "中心 Y 軸"],
+    units: ["條", "px", "px"],
+    min: [6, 0, 0],
+    max: [32, 2160, 4680],
+    defaults: [16, 1080, 2340],
+  },
+  orbit_grid: {
+    title: "軌道網格",
+    shortTitle: "ORBIT GRID",
+    subtitle: "用密集圓環與偏移軸線疊出克制的宇宙秩序。",
+    labels: ["圓環尺度", "線條粗度", "網格偏移"],
+    units: ["px", "px", "px"],
+    min: [220, 20, -360],
+    max: [900, 200, 360],
+    defaults: [560, 75, 0],
+  },
 };
 
 const palettes: Record<Mode, { bg: string; layers: string[] }> = {
@@ -129,7 +162,20 @@ const palettes: Record<Mode, { bg: string; layers: string[] }> = {
   waves: { bg: "#3B0909", layers: ["#F46299", "#F75C6D", "#B72B3E", "#F07C3E", "#F69947", "#FBC952", "#F69947"] },
   arches: { bg: "#FF453A", layers: ["#FF9F0A", "#FFD60A", "#32D74B", "#0A84FF", "#5E5CE6", "#FF375F", "#FF9F0A"] },
   soft_tiles: { bg: "#376B49", layers: ["#376B49", "#6FA04E", "#B1CF59", "#F3E8CB", "#FF6B5A", "#D94E46"] },
+  diamond_field: { bg: "#10151C", layers: ["#D8683B", "#E2B868", "#F0E7D3", "#377987", "#B94555", "#1F3B56"] },
+  sunburst: { bg: "#F2E8D5", layers: ["#F2E8D5", "#EAB451", "#E57148", "#BC4451", "#5D405D", "#2D5C6E"] },
+  orbit_grid: { bg: "#EAE2D3", layers: ["#163A54", "#22748B", "#D7A347", "#CC5C48", "#6F7E49", "#D9D2C3"] },
 };
+
+type ColorTheme = { id: string; title: string; background: string; layers: string[] };
+
+const colorThemes: ColorTheme[] = [
+  { id: "signal-ink", title: "訊號墨綠", background: "#101B1A", layers: ["#244F4D", "#4A857D", "#9BCF8A", "#E6D38E", "#F07A59", "#C64B4A"] },
+  { id: "paper-riso", title: "紙感孔版", background: "#F1E8D7", layers: ["#26364A", "#47758A", "#D6A23F", "#D86D4F", "#B64F61", "#563D63"] },
+  { id: "cobalt-citrus", title: "鈷藍柑橘", background: "#102B4E", layers: ["#174A7A", "#2D83A8", "#8FC7A6", "#F2D157", "#F28845", "#D8504D"] },
+  { id: "orchid-night", title: "蘭夜殘光", background: "#201A36", layers: ["#3D2C60", "#6B4E8D", "#B56FA1", "#E9A67B", "#E9D6A3", "#8AA49B"] },
+  { id: "clay-studio", title: "陶土工作室", background: "#35271F", layers: ["#704735", "#AE6841", "#D99B5C", "#E6C99A", "#A8B487", "#54756D"] },
+];
 
 const assetUrl = (filename: string) => `${import.meta.env.BASE_URL}assets/${filename}`;
 const assets = {
@@ -167,7 +213,7 @@ export default function Home() {
   const [exporting, setExporting] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const config = patternConfig[mode];
-  const backgroundVisible = mode !== "stripes" && mode !== "diagonal_waves" && mode !== "soft_tiles";
+  const backgroundVisible = mode !== "stripes" && mode !== "diagonal_waves" && mode !== "soft_tiles" && mode !== "sunburst";
 
   const modeNumber = (Object.keys(patternConfig) as Mode[]).indexOf(mode) + 1;
   const modeTotal = Object.keys(patternConfig).length;
@@ -243,6 +289,38 @@ export default function Home() {
         </g>
       );
     }
+    if (mode === "diamond_field") {
+      const columns = Math.ceil(2600 / a) + 3;
+      const rows = Math.ceil(5200 / b) + 3;
+      return Array.from({ length: rows }).flatMap((_, row) => Array.from({ length: columns }).map((__, column) => {
+        const centerX = -a + column * a + (row % 2 ? a / 2 : 0) + c;
+        const centerY = -b + row * b;
+        const color = layers[(row + column) % layers.length];
+        return <polygon key={`${row}-${column}`} points={`${centerX},${centerY - b / 2} ${centerX + a / 2},${centerY} ${centerX},${centerY + b / 2} ${centerX - a / 2},${centerY}`} fill={color} />;
+      }));
+    }
+    if (mode === "sunburst") {
+      const rayCount = Math.round(a);
+      const radius = 7000;
+      return Array.from({ length: rayCount }).map((_, index) => {
+        const startAngle = (index / rayCount) * Math.PI * 2 - Math.PI / 2;
+        const endAngle = ((index + 1) / rayCount) * Math.PI * 2 - Math.PI / 2;
+        const startX = b + Math.cos(startAngle) * radius;
+        const startY = c + Math.sin(startAngle) * radius;
+        const endX = b + Math.cos(endAngle) * radius;
+        const endY = c + Math.sin(endAngle) * radius;
+        return <polygon key={index} points={`${b},${c} ${startX},${startY} ${endX},${endY}`} fill={layers[index % layers.length]} />;
+      });
+    }
+    if (mode === "orbit_grid") {
+      const columns = Math.ceil(2700 / a) + 2;
+      const rows = Math.ceil(5200 / a) + 2;
+      return Array.from({ length: rows }).flatMap((_, row) => Array.from({ length: columns }).map((__, column) => {
+        const cx = -a + column * a + (row % 2 ? a / 2 : 0) + c;
+        const cy = -a + row * a;
+        return <circle key={`${row}-${column}`} cx={cx} cy={cy} r={a * 0.39} fill="none" stroke={layers[(row * 2 + column) % layers.length]} strokeWidth={b} />;
+      }));
+    }
     return (
       <>
         {layers.map((color, index) => <circle key={`${color}-${index}`} cx={b} cy={c} r={(layers.length - index + 1) * a} stroke={color} strokeWidth={a} fill="none" />)}
@@ -264,6 +342,11 @@ export default function Home() {
 
   const updateLayer = (index: number, value: string) => {
     setLayers((previous) => previous.map((color, colorIndex) => colorIndex === index ? value : color));
+  };
+
+  const applyColorTheme = (theme: ColorTheme) => {
+    setBackground(theme.background);
+    setLayers([...theme.layers]);
   };
 
   const randomize = () => {
@@ -361,6 +444,17 @@ export default function Home() {
 
           <div className="control-section color-section">
             <div className="section-title"><span className="section-number">03</span><p>顏色編輯</p><span className="measure-tag">{layers.length} TONES</span></div>
+            <div className="theme-library" aria-label="精選調色盤">
+              <span className="theme-library-label">精選調色盤</span>
+              <div className="theme-grid">
+                {colorThemes.map((theme) => (
+                  <button className={`theme-chip ${theme.layers.join("") === layers.join("") ? "is-active" : ""}`} type="button" key={theme.id} onClick={() => applyColorTheme(theme)} aria-label={`套用${theme.title}配色`}>
+                    <span className="theme-bars" aria-hidden="true">{theme.layers.slice(0, 4).map((color) => <i key={color} style={{ background: color }} />)}</span>
+                    <span>{theme.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             {backgroundVisible && (
               <label className="base-color-control">
                 <span>底色</span>
